@@ -1,0 +1,17 @@
+# Render Blueprint: one Docker web service. Render reads this file when you choose
+# "New > Blueprint" and point it at this repo.
+services:
+  - type: web
+    name: querypilot-sql-agent
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false          # you paste the key in Render's dashboard; it never lives in the repo
+      - key: QP_LLM_MODEL
+        value: claude-sonnet-5-5
+      - key: QP_LLM_FAST_MODEL
+        value: claude-haiku-5-5
