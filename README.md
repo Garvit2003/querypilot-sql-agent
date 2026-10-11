@@ -37,6 +37,18 @@ Built with **LangGraph**, FastAPI, SQLite, `sqlglot` and React, on Anthropic Cla
 
 The full eval report is in [`backend/evals/results/latest.md`](backend/evals/results/latest.md). **Caveat:** the eval set was written by me for a schema I designed, so it's a strong signal, not proof of general accuracy. See [Limitations](#limitations).
 
+### What testing on the real model caught
+
+The first full eval run scored 38/40. Every finding was traced to a root cause and fixed in the right place:
+
+| Finding | Root cause | Fix |
+| --- | --- | --- |
+| Every request failed on first contact | Current Claude models reject the `temperature` parameter | Removed it; consistency comes from structured outputs, strict prompts and the validator |
+| "Show all customers" reported 200 customers; there are 300 | The explainer saw only the 200-row display cap | The backend now counts the true total, so summaries can't confuse the cap with the answer |
+| "Hired after January 2024" read as from 1 February | Ambiguous phrasing | Prompt rule matching the brief's own example (on or after 1 January) |
+| "Which rep handled the most delivered orders?" returned a top-10 list | Two reps are tied; the "default LIMIT 10" rule over-applied | Singular superlatives return only the winners, ties included; tie-aware tests |
+| Monthly revenue marked as failing | **The test was wrong:** month labels "2025-01" vs "01", same revenue | Test now compares the revenue per month |
+
 ---
 
 ## Architecture
