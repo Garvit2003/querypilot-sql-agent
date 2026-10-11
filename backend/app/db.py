@@ -7,7 +7,6 @@ different SQLite file and the agent, the validator and the prompts all follow it
 from __future__ import annotations
 
 import sqlite3
-import threading
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -66,6 +65,7 @@ class Table:
 @dataclass
 class Schema:
     tables: dict[str, Table]  # keyed by lower-case table name
+    notes: dict[str, str] = field(default_factory=dict)  # business notes; only the sample DB has them
 
     def table(self, name: str) -> Table | None:
         return self.tables.get(name.lower())
@@ -90,7 +90,7 @@ class Schema:
                 "foreign_keys": [{"column": f.column, "references": f"{f.ref_table}.{f.ref_column}"}
                                  for f in t.foreign_keys],
                 "row_count": t.row_count,
-                "notes": SCHEMA_NOTES.get(t.name, ""),
+                "notes": self.notes.get(t.name, ""),
             }
             for t in self.tables.values()
         }
@@ -114,10 +114,18 @@ def get_readonly_connection(db_path: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
-@lru_cache(maxsize=1)
-def get_schema() -> Schema:
-    ensure_database()
-    conn = get_readonly_connection()
+def get_schema(db_path: Path | None = None) -> Schema:
+    """Schema of the given database (the sample one by default), cached until the file changes."""
+    path = Path(db_path or config.DB_PATH)
+    if path == config.DB_PATH:
+        ensure_database()
+    return _load_schema(str(path), path.stat().st_mtime)
+
+
+@lru_cache(maxsize=64)
+def _load_schema(path_str: str, _mtime: float) -> Schema:
+    path = Path(path_str)
+    conn = get_readonly_connection(path)
     try:
         tables: dict[str, Table] = {}
         names = [r[0] for r in conn.execute(
@@ -142,7 +150,8 @@ def get_schema() -> Schema:
                         c.sample_values = [r[0] for r in conn.execute(
                             f'SELECT DISTINCT "{c.name}" FROM "{name}" ORDER BY 1')]
             tables[name.lower()] = Table(name, cols, fks, indexed, row_count)
-        return Schema(tables)
+        notes = SCHEMA_NOTES if path == config.DB_PATH else {}
+        return Schema(tables, notes)
     finally:
         conn.close()
 
@@ -160,8 +169,8 @@ def schema_for_prompt(schema: Schema | None = None) -> str:
             lines.append(f"  {c.name} {c.type}{extra}")
         for fk in t.foreign_keys:
             lines.append(f"  FOREIGN KEY {fk.column} -> {fk.ref_table}.{fk.ref_column}")
-        if t.name in SCHEMA_NOTES:
-            lines.append(f"  NOTE: {SCHEMA_NOTES[t.name]}")
+        if t.name in schema.notes:
+            lines.append(f"  NOTE: {schema.notes[t.name]}")
         lines.append("")
     return "\n".join(lines).strip()
 
@@ -170,11 +179,12 @@ class QueryTimeout(Exception):
     pass
 
 
-def run_readonly_query(sql: str, limit: int | None = None, timeout: float | None = None) -> dict:
+def run_readonly_query(sql: str, limit: int | None = None, timeout: float | None = None,
+                       db_path: Path | None = None) -> dict:
     """Execute a validated SELECT on a read-only connection with a row cap and a time limit."""
     limit = limit or config.RESULT_ROW_LIMIT
     timeout = timeout or config.QUERY_TIMEOUT_SECONDS
-    conn = get_readonly_connection()
+    conn = get_readonly_connection(db_path)
     deadline = time.monotonic() + timeout
     # SQLite calls this every N virtual-machine steps; returning non-zero aborts the query.
     conn.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 10_000)
@@ -204,12 +214,9 @@ def run_readonly_query(sql: str, limit: int | None = None, timeout: float | None
         conn.close()
 
 
-_explain_lock = threading.Lock()
-
-
-def explain_check(sql: str) -> str | None:
+def explain_check(sql: str, db_path: Path | None = None) -> str | None:
     """Ask SQLite to compile (not run) the query. Returns an error message, or None if it compiles."""
-    conn = get_readonly_connection()
+    conn = get_readonly_connection(db_path)
     try:
         conn.execute(f"EXPLAIN {sql}")
         return None
@@ -219,9 +226,9 @@ def explain_check(sql: str) -> str | None:
         conn.close()
 
 
-def query_plan(sql: str) -> list[str]:
+def query_plan(sql: str, db_path: Path | None = None) -> list[str]:
     """SQLite's query plan, used to spot full-table scans for performance hints."""
-    conn = get_readonly_connection()
+    conn = get_readonly_connection(db_path)
     try:
         return [row[3] for row in conn.execute(f"EXPLAIN QUERY PLAN {sql}")]
     except sqlite3.Error:

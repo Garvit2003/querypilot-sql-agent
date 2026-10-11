@@ -32,7 +32,7 @@ import sqlglot
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from . import analyzer, config, db, guards, llm, prompts
+from . import analyzer, config, databases, db, guards, llm, prompts
 from .validator import format_sql, validate_sql
 
 
@@ -65,6 +65,7 @@ class AgentState(TypedDict, total=False):
     final_sql: Optional[str]
     dialects: Optional[dict]
     steps: list[str]
+    db_id: Optional[str]              # which database this turn runs against (None = sample)
 
 
 TURN_RESET: dict[str, Any] = {
@@ -79,6 +80,11 @@ SQL_INTENTS = {"generate", "modify", "optimize", "debug", "explain"}
 
 
 # ----------------------------------- helpers -----------------------------------
+
+def _db(state: AgentState):
+    """File path of the database this conversation uses."""
+    return databases.path_for(state.get("db_id"))
+
 
 def _step(state: AgentState, name: str) -> list[str]:
     return list(state.get("steps") or []) + [name]
@@ -133,7 +139,7 @@ def input_guard(state: AgentState) -> dict:
 
 
 def classify_intent(state: AgentState) -> dict:
-    schema = db.get_schema()
+    schema = db.get_schema(_db(state))
     system = prompts.CLASSIFY_SYSTEM.format(
         injection_rule=prompts.INJECTION_RULE, table_list=_table_list(schema),
         last_sql=state.get("last_sql") or "(none)", history=_history(state))
@@ -171,27 +177,27 @@ def clarify(state: AgentState) -> dict:
 
 
 def answer_schema(state: AgentState) -> dict:
-    system = prompts.SCHEMA_INFO_SYSTEM.format(injection_rule=prompts.INJECTION_RULE, schema=db.schema_for_prompt())
+    system = prompts.SCHEMA_INFO_SYSTEM.format(injection_rule=prompts.INJECTION_RULE, schema=db.schema_for_prompt(db.get_schema(_db(state))))
     result: llm.SchemaAnswer = llm.get_client().structured(
         llm.SchemaAnswer, system, prompts.SCHEMA_INFO_USER.format(message=state["user_input"]), fast=True)
     return {"steps": _step(state, "answer_schema"), "response_type": "answer", "response_text": result.answer}
 
 
 def load_schema(state: AgentState) -> dict:
-    return {"steps": _step(state, "load_schema"), "schema_text": db.schema_for_prompt()}
+    return {"steps": _step(state, "load_schema"), "schema_text": db.schema_for_prompt(db.get_schema(_db(state)))}
 
 
 def diagnose(state: AgentState) -> dict:
     """Run the deterministic checks on SQL the user supplied, before asking the LLM anything."""
     sql = state.get("user_sql") or ""
-    v = validate_sql(sql)
+    v = validate_sql(sql, db_path=_db(state))
     update: dict = {"steps": _step(state, "diagnose")}
     if v.destructive:
         update.update(intent="destructive", refusal_reason="destructive")
         return update
     diagnostics = list(v.errors) + list(v.warnings)
     if v.valid:
-        diagnostics += [n["message"] for n in analyzer.analyze(sql)]
+        diagnostics += [n["message"] for n in analyzer.analyze(sql, db_path=_db(state))]
     update["diagnostics"] = diagnostics or ["No problems detected by automatic checks."]
     intent = state["intent"]
     if intent == "explain":
@@ -206,7 +212,7 @@ def generate_sql(state: AgentState) -> dict:
     intent, attempts = state["intent"], state.get("attempts", 0)
     system = prompts.GENERATE_SYSTEM.format(
         today=date.today().isoformat(), injection_rule=prompts.INJECTION_RULE,
-        schema=state.get("schema_text") or db.schema_for_prompt(), history=_history(state))
+        schema=state.get("schema_text") or db.schema_for_prompt(db.get_schema(_db(state))), history=_history(state))
     msg = state["user_input"]
     last_validation = state.get("validation")
     if attempts > 0 and last_validation and not last_validation["valid"]:
@@ -237,7 +243,7 @@ def generate_sql(state: AgentState) -> dict:
 
 
 def validate_node(state: AgentState) -> dict:
-    v = validate_sql(state["candidate_sql"])
+    v = validate_sql(state["candidate_sql"], db_path=_db(state))
     history = list(state.get("validation_history") or []) + [
         {"attempt": state.get("attempts", 0) + 1, "sql": state["candidate_sql"], **v.to_dict()}]
     update = {"steps": _step(state, "validate_sql"), "validation": v.to_dict(),
@@ -251,14 +257,14 @@ def validate_node(state: AgentState) -> dict:
 
 def analyze_performance(state: AgentState) -> dict:
     sql = state["final_sql"]
-    return {"steps": _step(state, "analyze_performance"), "performance": analyzer.analyze(sql),
-            "cost": analyzer.estimate_cost(sql)}
+    return {"steps": _step(state, "analyze_performance"), "performance": analyzer.analyze(sql, db_path=_db(state)),
+            "cost": analyzer.estimate_cost(sql, db_path=_db(state))}
 
 
 def execute_query(state: AgentState) -> dict:
     update: dict = {"steps": _step(state, "execute_query")}
     try:
-        update["results"] = db.run_readonly_query(state["final_sql"])
+        update["results"] = db.run_readonly_query(state["final_sql"], db_path=_db(state))
     except Exception as e:  # timeout or runtime error: still return the SQL and explanation
         update["execution_error"] = str(e)
     return update
@@ -397,9 +403,9 @@ def get_graph():
     return _graph
 
 
-def run_turn(session_id: str, message: str) -> dict:
+def run_turn(session_id: str, message: str, db_id: str | None = None) -> dict:
     """Run one user message through the graph for a given conversation."""
-    state = get_graph().invoke({**TURN_RESET, "user_input": message},
+    state = get_graph().invoke({**TURN_RESET, "user_input": message, "db_id": db_id},
                                config={"configurable": {"thread_id": session_id}})
     return to_response(state)
 

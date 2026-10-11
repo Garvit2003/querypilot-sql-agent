@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchSchema, streamChat } from './api.js'
+import { fetchSchema, streamChat, uploadDatabase } from './api.js'
 import { loadConversations, loadTheme, newId, saveConversations, saveTheme } from './storage.js'
 import Workbench from './Workbench.jsx'
 
@@ -10,8 +10,10 @@ const ALL_STEPS_LABEL = {
   refuse: 'Decline', clarify: 'Clarify', answer_schema: 'Schema', fail: 'Stop', respond: 'Respond',
 }
 
-function emptyConversation() {
-  return { id: newId(), title: 'New conversation', createdAt: Date.now(), messages: [] }
+const SAMPLE_DB = { id: null, name: 'Sample company database' }
+
+function emptyConversation(db = SAMPLE_DB) {
+  return { id: newId(), title: 'New conversation', createdAt: Date.now(), messages: [], dbId: db.id, dbName: db.name }
 }
 
 export default function App() {
@@ -26,6 +28,7 @@ export default function App() {
   const [schema, setSchema] = useState(null)
   const [schemaError, setSchemaError] = useState(null)
   const [railOpen, setRailOpen] = useState(false)
+  const [dbPanelOpen, setDbPanelOpen] = useState(false)
   const [theme, setTheme] = useState(() => loadTheme() ||
     (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
 
@@ -38,8 +41,10 @@ export default function App() {
   useEffect(() => { document.documentElement.dataset.theme = theme; saveTheme(theme) }, [theme])
   useEffect(() => { saveConversations(conversations) }, [conversations])
   useEffect(() => {
-    fetchSchema().then(setSchema).catch(e => setSchemaError(e.message))
-  }, [])
+    setSchema(null)
+    setSchemaError(null)
+    fetchSchema(active.dbId).then(setSchema).catch(e => setSchemaError(e.message))
+  }, [active.dbId])
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
   }, [active?.messages.length, pending?.steps.length])
@@ -72,7 +77,7 @@ export default function App() {
     let response
     try {
       response = await streamChat(active.id, message, step =>
-        setPending(p => (p ? { steps: [...p.steps, step] } : p)))
+        setPending(p => (p ? { steps: [...p.steps, step] } : p)), active.dbId)
     } catch {
       response = { type: 'error', message: "Couldn't reach the server. Check your connection and try again.", steps: [] }
     }
@@ -81,8 +86,8 @@ export default function App() {
     inputRef.current?.focus()
   }
 
-  function newChat() {
-    const c = emptyConversation()
+  function newChat(db) {
+    const c = emptyConversation(db || { id: active.dbId ?? null, name: active.dbName || SAMPLE_DB.name })
     setConversations(list => [c, ...list.filter(x => x.messages.length)])
     setActiveId(c.id)
     setSelectedIndex(null)
@@ -120,7 +125,7 @@ export default function App() {
             <span className="brand-mark" aria-hidden="true" />
             <span>QueryPilot</span>
           </div>
-          <button className="btn btn-primary" onClick={newChat}>New conversation</button>
+          <button className="btn btn-primary" onClick={() => newChat()}>New conversation</button>
         </div>
         <nav className="history">
           {history.length === 0 && <p className="muted small pad">Your conversations will appear here.</p>}
@@ -147,11 +152,29 @@ export default function App() {
         <header className="chat-head">
           <button className="icon-btn menu-btn" aria-label="Open conversations" onClick={() => setRailOpen(true)}>☰</button>
           <h1 className="chat-title">{active.messages.length ? active.title : 'Ask the database'}</h1>
+          <button className={`db-chip ${active.dbId ? 'custom' : ''}`} onClick={() => setDbPanelOpen(o => !o)}
+                  aria-expanded={dbPanelOpen} title="Change database">
+            <span className="db-dot" aria-hidden="true" />
+            <span className="db-name">{active.dbName || SAMPLE_DB.name}</span>
+            <span className="db-change">Change</span>
+          </button>
         </header>
+        {dbPanelOpen && (
+          <DatabasePanel
+            current={active}
+            onClose={() => setDbPanelOpen(false)}
+            onUseSample={() => { newChat(SAMPLE_DB); setDbPanelOpen(false) }}
+            onLoaded={payload => {
+              newChat({ id: payload.database.id, name: payload.database.name })
+              setDbPanelOpen(false)
+            }}
+          />
+        )}
 
         <div className="messages" ref={listRef} aria-live="polite">
           {active.messages.length === 0 && !pending && (
-            <Welcome schema={schema} schemaError={schemaError} onPick={q => send(q)} />
+            <Welcome schema={schema} schemaError={schemaError} dbName={active.dbName || SAMPLE_DB.name}
+                     custom={!!active.dbId} onPick={q => send(q)} onChangeDb={() => setDbPanelOpen(true)} />
           )}
           {active.messages.map((m, i) => m.role === 'user'
             ? <div key={i} className="msg user"><div className="bubble">{m.content}</div></div>
@@ -184,15 +207,20 @@ export default function App() {
   )
 }
 
-function Welcome({ schema, schemaError, onPick }) {
+function Welcome({ schema, schemaError, dbName, custom, onPick, onChangeDb }) {
   return (
     <div className="welcome">
-      <h2>Ask a question about the company database</h2>
+      <h2>{custom ? `Ask a question about ${dbName}` : 'Ask a question about the company database'}</h2>
       <p className="muted">
         Questions become read-only SQL you can inspect, run and copy. You can also paste a query to have it
         explained, fixed or optimised.
+        {!custom && <> Want to test your own schema? <button className="link-btn" onClick={onChangeDb}>Upload a database</button>.</>}
       </p>
-      {schemaError && <p className="error-text">{schemaError}</p>}
+      {schemaError && (
+        <p className="error-text">
+          {schemaError} <button className="link-btn" onClick={onChangeDb}>Choose another database</button>
+        </p>
+      )}
       {schema && (
         <>
           <div className="examples">
@@ -275,6 +303,61 @@ function AssistantMessage({ message, selected, onShow }) {
           <summary>How I got here ({r.steps.length} steps)</summary>
           <StepTrail steps={r.steps} />
         </details>
+      )}
+    </div>
+  )
+}
+
+function DatabasePanel({ current, onClose, onUseSample, onLoaded }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const [sql, setSql] = useState('')
+  const fileRef = useRef(null)
+
+  async function load(args) {
+    setBusy(true)
+    setError(null)
+    try {
+      onLoaded(await uploadDatabase(args))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="db-panel" role="dialog" aria-label="Choose a database">
+      <div className="db-panel-head">
+        <h2>Choose a database</h2>
+        <button className="icon-btn" aria-label="Close" onClick={onClose}>×</button>
+      </div>
+      <p className="muted small">
+        Upload a <strong>.sql</strong> script (CREATE TABLE statements, optionally with INSERTs) or a SQLite file
+        (<strong>.db</strong>, <strong>.sqlite</strong>). The agent will use only that schema, and it stays read-only.
+        Uploads are kept for a day. A new conversation starts on the chosen database.
+      </p>
+      <div className="db-options">
+        <div className="db-option">
+          <h3>Upload a file</h3>
+          <input ref={fileRef} type="file" accept=".sql,.db,.sqlite,.sqlite3" disabled={busy}
+                 onChange={e => e.target.files[0] && load({ file: e.target.files[0] })} />
+        </div>
+        <div className="db-option">
+          <h3>Or paste a SQL schema</h3>
+          <textarea value={sql} onChange={e => setSql(e.target.value)} rows={5} disabled={busy}
+                    placeholder={'CREATE TABLE Authors (AuthorID INTEGER PRIMARY KEY, Name TEXT);\nINSERT INTO Authors VALUES (1, \'Toni Morrison\');'} />
+          <button className="btn btn-small btn-primary" disabled={busy || !sql.trim()} onClick={() => load({ sqlText: sql })}>
+            Load schema
+          </button>
+        </div>
+      </div>
+      {busy && <p className="muted small">Loading the database…</p>}
+      {error && <p className="error-text small">{error}</p>}
+      {current.dbId && (
+        <button className="btn btn-small btn-ghost" onClick={onUseSample} disabled={busy}>
+          Switch back to the sample company database
+        </button>
       )}
     </div>
   )

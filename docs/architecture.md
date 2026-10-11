@@ -17,14 +17,19 @@ One Docker container runs FastAPI, which serves both the API and the built React
 | Component | File | Responsibility |
 | --- | --- | --- |
 | React UI | `frontend/src/` | Chat, live step trail, query panel (SQL / Explanation / Results / Checks), history in localStorage, dark mode |
-| API | `backend/app/main.py` | `/api/chat`, `/api/chat/stream`, `/api/schema`, `/api/health`; rate limiting; friendly error mapping; serves the frontend |
+| API | `backend/app/main.py` | `/api/chat`, `/api/chat/stream`, `/api/schema`, `/api/databases` (upload), `/api/health`; rate limiting; friendly error mapping; serves the frontend |
 | Agent | `backend/app/graph.py` | LangGraph state machine (see `workflow.md`) |
 | Prompts | `backend/app/prompts.py` | All prompts (see `prompts.md`) |
 | LLM client | `backend/app/llm.py` | Provider-agnostic interface; structured output schemas; injectable for tests |
 | Input guards | `backend/app/guards.py` | Blocks pasted destructive SQL, prompt injection, empty or over-long input before any LLM call |
 | Validator | `backend/app/validator.py` | Seven checks on a sqlglot syntax tree plus SQLite `EXPLAIN` |
 | Analyzer | `backend/app/analyzer.py` | Index recommendations, non-sargable filters, unused joins, `SELECT *`, cost estimate from `EXPLAIN QUERY PLAN` |
-| Database | `backend/app/db.py` | Read-only connections, schema introspection, schema notes, execution with row and time limits |
+| Database | `backend/app/db.py` | Read-only connections, schema introspection (cached per database file), schema notes, execution with row and time limits |
+| Uploads | `backend/app/databases.py` | Bring-your-own-database: runs a `.sql` script into an isolated SQLite file (ATTACH blocked, size and time limits) or stores a checked SQLite file; resolves upload ids to files |
+
+## Which database a turn uses
+
+Every chat request may carry a `db_id`. The graph resolves it once per node via `databases.path_for()`, and the schema, validator, analyzer and executor all receive that path. With no `db_id`, the sample database is used. Business notes apply only to the sample database.
 
 ## Defence in depth for "never destructive"
 

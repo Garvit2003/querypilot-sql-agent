@@ -95,8 +95,8 @@ def _alias_map(select: exp.Select) -> dict[str, str]:
     return mapping
 
 
-def validate_sql(sql: str, schema: db.Schema | None = None) -> ValidationResult:
-    schema = schema or db.get_schema()
+def validate_sql(sql: str, schema: db.Schema | None = None, db_path=None) -> ValidationResult:
+    schema = schema or db.get_schema(db_path)
     result = ValidationResult(valid=False)
     sql = (sql or "").strip().rstrip(";").strip()
 
@@ -200,7 +200,7 @@ def validate_sql(sql: str, schema: db.Schema | None = None) -> ValidationResult:
                                "; ".join(join_warnings) if join_warnings else "All joins follow declared keys."))
 
     # 7. Compiles in SQLite
-    err = db.explain_check(sql)
+    err = db.explain_check(sql, db_path)
     if err:
         return fail("Compiles", f"SQLite rejected the query: {err}")
     result.checks.append(Check("Compiles", True))

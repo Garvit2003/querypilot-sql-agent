@@ -1,6 +1,6 @@
 # QueryPilot — SQL Query AI Agent
 
-Ask a database question in plain English and get back **validated, read-only SQL**, a plain-English explanation, and the actual results. Paste SQL to have it **explained, debugged or optimised**. Anything that isn't about SQL or this database is politely refused.
+Ask a database question in plain English and get back **validated, read-only SQL**, a plain-English explanation, and the actual results. Paste SQL to have it **explained, debugged or optimised**. **Bring your own database** by uploading a `.sql` schema or a SQLite file. Anything that isn't about SQL or the database is politely refused.
 
 **Live app:** https://querypilot-sql-agent.onrender.com · **Demo video:** _VIDEO_URL_
 
@@ -23,6 +23,7 @@ Built with **LangGraph**, FastAPI, SQLite, `sqlglot` and React, on Anthropic Cla
 | Conversation context | Follow-ups ("only those from California") modify the previous query, using LangGraph's checkpointer memory |
 | Out-of-scope handling | Classified and refused with the exact wording from the brief |
 | Ambiguity | Asks one clarifying question when no reasonable interpretation exists; otherwise states its assumptions |
+| "A sample database schema will be provided" | **Upload any schema in the app** (`.sql` script or SQLite file) and the agent, validator and guardrails switch to it. See [Test with your own database](#test-with-your-own-database) |
 
 **Bonus features implemented:** query execution · follow-up support · query cost estimate (from the query plan) · SQL syntax highlighting · PostgreSQL and MySQL versions of every query (translated with `sqlglot`) · CSV export · SQL download · prompt-injection protection · streaming progress (one event per graph step) · dark mode · Docker deployment · unit, integration and evaluation tests.
 
@@ -33,7 +34,7 @@ Built with **LangGraph**, FastAPI, SQLite, `sqlglot` and React, on Anthropic Cla
 | Suite | Result | What it measures |
 | --- | --- | --- |
 | Evaluation set (real model) | **40 / 40** | Execution accuracy against hand-written gold SQL, plus guardrail behaviour, across 10 categories |
-| Unit and integration tests | **64 / 64** | Validator, guards, graph routing, repair loop, memory, API — with a scripted fake LLM, no network |
+| Unit and integration tests | **76 / 76** | Validator, guards, graph routing, repair loop, memory, API, database uploads — with a scripted fake LLM, no network |
 
 The full eval report is in [`backend/evals/results/latest.md`](backend/evals/results/latest.md). **Caveat:** the eval set was written by me for a schema I designed, so it's a strong signal, not proof of general accuracy. See [Limitations](#limitations).
 
@@ -128,7 +129,7 @@ docker run -p 8000:8000 -e ANTHROPIC_API_KEY=your-key querypilot   # http://loca
 **Tests and evals** (from `backend/`):
 
 ```bash
-pytest                                  # 64 tests, no API key needed
+pytest                                  # 76 tests, no API key needed
 python -m evals.run_evals --workers 4   # 40 cases on the real model, writes evals/results/latest.md
 ```
 
@@ -148,6 +149,20 @@ python -m evals.run_evals --workers 4   # 40 cases on the real model, writes eva
 ## Sample database
 
 A small company: `Departments`, `Employees` (with a self-referencing manager), `Customers`, `Products`, `Orders`, `OrderItems` — about 5,600 rows of deterministic fake data (fixed random seed, so every build is identical). Full definition: [`backend/app/schema.sql`](backend/app/schema.sql); field meanings: [`docs/schema.md`](docs/schema.md).
+
+## Test with your own database
+
+The brief says a schema will be provided, so the live app accepts one directly:
+
+1. Click the **database chip** at the top right of the chat (it reads "Sample company database") and choose **Change**.
+2. **Upload a `.sql` file** (CREATE TABLE statements, optionally with INSERTs) or a **SQLite file** (`.db`, `.sqlite`), or paste the SQL.
+3. A new conversation starts on that database. Its tables and starter questions appear on the welcome screen.
+
+Try it with [`examples/library.sql`](examples/library.sql): *"Which author has written the most books?"* → *"Only Indian authors"*.
+
+How it works: a SQL script is executed into a fresh, isolated SQLite file (ATTACH is blocked, 15-second and 2 MB limits); a SQLite file is integrity-checked. Each upload gets an id that conversations pass with every message, and the schema, validator, analyzer and execution all switch to that database. Queries still run on a **read-only** connection. Scripts written for MySQL or PostgreSQL may need small changes for SQLite (for example `AUTO_INCREMENT`). Uploads are kept for a day, and on the free host they're cleared when the server restarts.
+
+Running locally, you can also point the app at any SQLite file: `QP_DB_PATH=/path/to/your.db`.
 
 ## Try these
 
@@ -170,6 +185,7 @@ A small company: `Departments`, `Employees` (with a self-referencing manager), `
 - **"After January 2024"** means on or after 1 January 2024, matching the brief's example.
 - **A non-foreign-key join is a warning, not an error,** because some legitimate queries join on non-key columns.
 - Results are capped at 200 rows and 5 seconds per query to protect the shared deployment.
+- The business "schema notes" (for example, revenue excludes cancelled orders) exist for the sample database only; uploaded databases rely on their own table and column names.
 
 ## Limitations
 
@@ -190,12 +206,14 @@ backend/
     guards.py      input checks before any LLM call
     analyzer.py    performance hints and cost estimate from the query plan
     db.py          read-only connections, schema introspection, execution
+    databases.py   bring-your-own-database uploads (.sql scripts and SQLite files)
     main.py        FastAPI app (API + serves the built frontend)
     schema.sql, seed.py
-  tests/           64 unit and integration tests (fake LLM)
+  tests/           76 unit and integration tests (fake LLM)
   evals/           40-case evaluation set and runner
 frontend/src/      React app (chat, live step trail, query panel)
 docs/              architecture, workflow, prompts, schema
+examples/          library.sql, a schema to try the upload feature with
 Dockerfile, render.yaml
 ```
 

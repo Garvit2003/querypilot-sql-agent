@@ -36,15 +36,15 @@ def _filter_columns(select: exp.Select, aliases: dict[str, str]) -> dict[str, li
     return found
 
 
-def estimate_cost(sql: str, schema: db.Schema | None = None) -> dict:
+def estimate_cost(sql: str, schema: db.Schema | None = None, db_path=None) -> dict:
     """Rough cost estimate from SQLite's query plan: rows read by full scans vs index lookups."""
-    schema = schema or db.get_schema()
+    schema = schema or db.get_schema(db_path)
     try:
         tree = sqlglot.parse_one(sql, read=DIALECT)
         aliases = {t.alias_or_name.lower(): t.name.lower() for t in tree.find_all(exp.Table)}
     except Exception:
         aliases = {}
-    plan = db.query_plan(sql)
+    plan = db.query_plan(sql, db_path)
     rows, scans, lookups = 0, [], []
     for step in plan:
         m = re.match(r"(SCAN|SEARCH) (\w+)", step)
@@ -64,9 +64,9 @@ def estimate_cost(sql: str, schema: db.Schema | None = None) -> dict:
             "plan": plan}
 
 
-def analyze(sql: str, schema: db.Schema | None = None) -> list[dict]:
+def analyze(sql: str, schema: db.Schema | None = None, db_path=None) -> list[dict]:
     """Return a list of {kind, message, suggestion} performance notes. Never raises."""
-    schema = schema or db.get_schema()
+    schema = schema or db.get_schema(db_path)
     notes: list[dict] = []
     try:
         tree = sqlglot.parse_one(sql, read=DIALECT)
@@ -81,7 +81,7 @@ def analyze(sql: str, schema: db.Schema | None = None) -> list[dict]:
                                  "to transfer and won't break if the table gains columns.",
                       "suggestion": None})
 
-    plan = db.query_plan(sql)
+    plan = db.query_plan(sql, db_path)
     scanned = set()
     for step in plan:
         m = re.match(r"SCAN (\w+)", step)
