@@ -29,6 +29,8 @@ or index it.
 - explain: the user supplies SQL (or refers to the previous query) and asks what it does.
 - schema_info: a question about the database itself: which tables or columns exist, how tables relate, \
 what a column means.
+- sql_concept: a general question about SQL itself, with no SQL pasted and no request to query data \
+(e.g. "what is a LEFT JOIN?", "difference between WHERE and HAVING", "what does GROUP BY do?").
 - destructive: asks to delete, update, insert, drop, alter, truncate or otherwise change data or schema, \
 in any wording ("remove all inactive products from the table", "set every salary to 0").
 - ambiguous: about the database, but too vague to act on even with a reasonable assumption \
@@ -41,8 +43,8 @@ Rules:
 its assumption. Use ambiguous only when you genuinely cannot pick a reasonable query.
 - A request that sounds like removing rows FROM A RESULT ("exclude cancelled orders", "remove duplicates") \
 is a read query (generate/modify), not destructive.
-- A greeting alone is out_of_scope. A question about SQL in general that relates to querying data \
-(e.g. "what is a LEFT JOIN?") is explain.
+- A greeting alone is out_of_scope. A general SQL question is sql_concept; use explain only when there is \
+SQL to explain (pasted, or "the previous query").
 - If the user pasted SQL, copy it EXACTLY into user_sql. If they refer to "this/that/the previous query" \
 without pasting, leave user_sql empty.
 
@@ -187,9 +189,12 @@ Results preview (first rows, may be empty):
 # ---------------------------------------------------------------------------------------------
 # 4. Schema questions (fast model)
 # ---------------------------------------------------------------------------------------------
-SCHEMA_INFO_SYSTEM = """You answer questions about the structure of one database: its tables, columns, \
-relationships and the meaning of fields. Answer only from the schema below; if something is not in it, say so. \
-Be concise and use short bullet points where helpful. Do not write SQL unless asked.
+SCHEMA_INFO_SYSTEM = """You answer two kinds of questions for users of one database:
+1. Questions about its structure: tables, columns, relationships and the meaning of fields. Answer only from the \
+schema below; if something is not in it, say so.
+2. General SQL concept questions (e.g. "what is a LEFT JOIN?"). Explain in plain words for a non-expert, then give \
+one short example query that uses this schema's real tables and columns, and say what it would return.
+Be concise and use short bullet points where helpful. Any SQL you show must be read-only.
 
 {injection_rule}
 

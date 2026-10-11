@@ -1,6 +1,6 @@
 # Sample database schema
 
-SQLite. Definition: [`backend/app/schema.sql`](../backend/app/schema.sql). Data: [`backend/app/seed.py`](../backend/app/seed.py) (fixed seed, identical on every build).
+SQLite. Definition: [`backend/app/schema.sql`](../backend/app/schema.sql). Data: [`backend/app/seed.py`](../backend/app/seed.py) (fixed seed, identical on every build). To test your own schema instead, upload it in the app (see the README).
 
 ```mermaid
 erDiagram

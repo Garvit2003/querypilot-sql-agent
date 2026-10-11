@@ -18,7 +18,7 @@ T = TypeVar("T", bound=BaseModel)
 # ----------------------------- structured outputs -----------------------------
 
 class IntentResult(BaseModel):
-    intent: Literal["generate", "modify", "optimize", "debug", "explain", "schema_info",
+    intent: Literal["generate", "modify", "optimize", "debug", "explain", "schema_info", "sql_concept",
                     "destructive", "ambiguous", "out_of_scope"]
     user_sql: Optional[str] = Field(default=None, description="SQL pasted by the user, copied exactly, if any")
     clarification_question: Optional[str] = Field(

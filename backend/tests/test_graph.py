@@ -169,3 +169,9 @@ def test_schema_question(run):
     fake = FakeLLM(intents=[intent("schema_info")])
     r = run(fake, "what tables do you have?")
     assert r["type"] == "answer"
+
+
+def test_sql_concept_question_is_answered_not_debugged(run):
+    fake = FakeLLM(intents=[intent("sql_concept")], schema_answer="A LEFT JOIN keeps every row from the left table.")
+    r = run(fake, "What is a LEFT JOIN?")
+    assert r["type"] == "answer" and fake.count("SQLDraft") == 0

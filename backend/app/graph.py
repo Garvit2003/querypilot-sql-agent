@@ -330,7 +330,7 @@ def route_after_classify(state: AgentState) -> str:
         return "refuse"
     if intent == "ambiguous":
         return "clarify"
-    if intent == "schema_info":
+    if intent in ("schema_info", "sql_concept"):
         return "answer_schema"
     return "load_schema"
 

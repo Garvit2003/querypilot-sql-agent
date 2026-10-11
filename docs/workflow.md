@@ -13,6 +13,7 @@ One `AgentState` dictionary flows through every node (`backend/app/graph.py`).
 | `final_sql`, `performance`, `cost`, `results`, `explanation` | per turn | What the UI shows |
 | `response_type` | per turn | `sql` · `refusal` · `clarification` · `answer` · `error` |
 | `steps` | per turn | Nodes visited, streamed to the UI |
+| `db_id` | per turn | Which database to use (an uploaded database's id, or none for the sample) |
 
 Per-turn fields are reset by `TURN_RESET` at the start of every message. Persisted fields live in the checkpointer under the conversation's `thread_id`.
 
@@ -21,10 +22,10 @@ Per-turn fields are reset by `TURN_RESET` at the start of every message. Persist
 | Node | LLM? | What it does |
 | --- | --- | --- |
 | `input_guard` | no | Blocks empty or over-long input, pasted destructive SQL, prompt-injection phrasing |
-| `classify_intent` | fast | One of: generate, modify, optimize, debug, explain, schema_info, destructive, ambiguous, out_of_scope. Code then corrects facts the model can't know: modify with no previous query → generate; "explain that query" → uses `last_sql` |
+| `classify_intent` | fast | One of: generate, modify, optimize, debug, explain, schema_info, sql_concept, destructive, ambiguous, out_of_scope. Code then corrects facts the model can't know: modify with no previous query → generate; "explain that query" → uses `last_sql` |
 | `refuse` | no | Fixed refusal text per reason |
 | `clarify` | no | Returns the clarifying question |
-| `answer_schema` | fast | Answers questions about tables and columns from the schema only |
+| `answer_schema` | fast | Answers questions about tables and columns from the schema only, and general SQL concept questions with an example on the current schema |
 | `load_schema` | no | Live schema plus semantic notes into the prompt |
 | `diagnose` | no | For pasted SQL: runs validator and analyzer so the model gets concrete findings. Broken SQL asked to be "explained" is re-routed to debug |
 | `generate_sql` | strong | Five task modes: generate, modify, debug, optimize, repair. Returns SQL, assumptions, notes, or a "can't answer" message |
@@ -42,7 +43,7 @@ Per-turn fields are reset by `TURN_RESET` at the start of every message. Persist
 | `input_guard` | blocked | `respond` |
 | `classify_intent` | out_of_scope or destructive | `refuse` |
 | | ambiguous | `clarify` |
-| | schema_info | `answer_schema` |
+| | schema_info or sql_concept | `answer_schema` |
 | | otherwise | `load_schema` |
 | `load_schema` | generate or modify | `generate_sql` |
 | | debug, optimize, explain | `diagnose` |

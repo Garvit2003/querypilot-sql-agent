@@ -24,7 +24,7 @@ HISTORY_TURNS_IN_PROMPT = int(os.getenv("QP_HISTORY_TURNS", "6"))
 MAX_INPUT_CHARS = int(os.getenv("QP_MAX_INPUT_CHARS", "4000"))
 
 # Abuse protection for the public deployment
-RATE_LIMIT_REQUESTS = int(os.getenv("QP_RATE_LIMIT_REQUESTS", "40"))
+RATE_LIMIT_REQUESTS = int(os.getenv("QP_RATE_LIMIT_REQUESTS", "120"))  # generous: reviewers may share one office IP
 RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("QP_RATE_LIMIT_WINDOW", "600"))
 
 # Frontend build served by FastAPI in production

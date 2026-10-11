@@ -23,7 +23,7 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 8.4,
+    "latency_s": 8.5,
     "sql": "SELECT\n  *\nFROM Employees AS e\nWHERE\n  e.HireDate >= '2024-01-01'\nORDER BY\n  e.HireDate",
     "response_type": "sql",
     "intent": "generate",
@@ -54,7 +54,7 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 6.9,
+    "latency_s": 7.5,
     "sql": "SELECT\n  COUNT(*) AS CustomerCount\nFROM Customers AS c\nWHERE\n  c.State = 'California'",
     "response_type": "sql",
     "intent": "generate",
@@ -85,12 +85,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 7.6,
+    "latency_s": 8.6,
     "sql": "SELECT\n  c.CustomerID,\n  c.FirstName,\n  c.LastName,\n  ROUND(SUM(o.TotalAmount), 2) AS TotalRevenue\nFROM Customers AS c\nJOIN Orders AS o\n  ON o.CustomerID = c.CustomerID\nWHERE\n  NOT o.Status IN ('Cancelled', 'Returned')\nGROUP BY\n  c.CustomerID,\n  c.FirstName,\n  c.LastName\nORDER BY\n  TotalRevenue DESC\nLIMIT 5",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Mason Young is the top customer, with total revenue of 11135.65."
+    "message": "Mason Young is the top customer with total revenue of 11135.65."
   },
   {
     "id": "gen-04",
@@ -116,12 +116,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 7.2,
-    "sql": "SELECT\n  d.DepartmentName,\n  ROUND(AVG(e.Salary), 2) AS AverageSalary\nFROM Departments AS d\nJOIN Employees AS e\n  ON e.DepartmentID = d.DepartmentID\nGROUP BY\n  d.DepartmentID,\n  d.DepartmentName\nORDER BY\n  AverageSalary DESC",
+    "latency_s": 8.2,
+    "sql": "SELECT\n  d.DepartmentName,\n  ROUND(AVG(e.Salary), 2) AS AvgSalary\nFROM Departments AS d\nLEFT JOIN Employees AS e\n  ON e.DepartmentID = d.DepartmentID\nGROUP BY\n  d.DepartmentID,\n  d.DepartmentName\nORDER BY\n  AvgSalary DESC",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Engineering has the highest average salary at 143558.82, and Customer Support has the lowest at 71000.0 among the 7 departments."
+    "message": "Engineering has the highest average salary at 143558.82, while Customer Support has the lowest among those shown at 71000.0."
   },
   {
     "id": "gen-05",
@@ -147,12 +147,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 7.1,
+    "latency_s": 7.7,
     "sql": "SELECT\n  o.Status,\n  COUNT(*) AS OrderCount\nFROM Orders AS o\nGROUP BY\n  o.Status\nORDER BY\n  OrderCount DESC",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Delivered is the most common status with 860 orders, and there are 5 statuses in total."
+    "message": "Delivered is the most common status with 860 orders, followed by Shipped with 226."
   },
   {
     "id": "gen-06",
@@ -178,8 +178,8 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 5.3,
-    "sql": "SELECT\n  p.ProductID,\n  p.ProductName,\n  p.Category,\n  p.UnitPrice,\n  p.StockQuantity,\n  p.IsActive\nFROM Products AS p\nLEFT JOIN OrderItems AS oi\n  ON oi.ProductID = p.ProductID\nWHERE\n  oi.OrderItemID IS NULL\nORDER BY\n  p.ProductName",
+    "latency_s": 5.6,
+    "sql": "SELECT\n  p.ProductID,\n  p.ProductName,\n  p.Category,\n  p.UnitPrice,\n  p.IsActive\nFROM Products AS p\nLEFT JOIN OrderItems AS oi\n  ON oi.ProductID = p.ProductID\nWHERE\n  oi.OrderItemID IS NULL\nORDER BY\n  p.ProductName",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
@@ -209,12 +209,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 5.3,
+    "latency_s": 5.4,
     "sql": "SELECT\n  ROUND(SUM(o.TotalAmount), 2) AS TotalRevenue\nFROM Orders AS o\nWHERE\n  o.OrderDate >= '2025-01-01'\n  AND o.OrderDate < '2026-01-01'\n  AND NOT o.Status IN ('Cancelled', 'Returned')",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Total revenue for 2025 was 252545.40, after excluding cancelled and returned orders."
+    "message": "Total revenue for 2025 was 252545.40 after excluding cancelled and returned orders."
   },
   {
     "id": "gen-08",
@@ -240,12 +240,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 6.5,
-    "sql": "SELECT\n  STRFTIME('%Y-%m', o.OrderDate) AS Month,\n  ROUND(SUM(o.TotalAmount), 2) AS TotalRevenue\nFROM Orders AS o\nWHERE\n  o.OrderDate >= '2025-01-01'\n  AND o.OrderDate < '2026-01-01'\n  AND NOT o.Status IN ('Cancelled', 'Returned')\nGROUP BY\n  STRFTIME('%Y-%m', o.OrderDate)\nORDER BY\n  Month",
+    "latency_s": 5.9,
+    "sql": "SELECT\n  SUBSTRING(o.OrderDate, 1, 7) AS Month,\n  ROUND(SUM(o.TotalAmount), 2) AS TotalRevenue\nFROM Orders AS o\nWHERE\n  o.OrderDate >= '2025-01-01'\n  AND o.OrderDate < '2026-01-01'\n  AND NOT o.Status IN ('Cancelled', 'Returned')\nGROUP BY\n  SUBSTRING(o.OrderDate, 1, 7)\nORDER BY\n  Month",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Revenue was highest in August 2025 at 31592.8 and lowest in April 2025 at 7509.85."
+    "message": "Revenue peaked in August 2025 at 31592.8, and the lowest month was April 2025 at 7509.85."
   },
   {
     "id": "gen-09",
@@ -271,12 +271,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 5.8,
-    "sql": "SELECT\n  d.DepartmentName,\n  ROUND(SUM(e.Salary), 2) AS TotalSalaryCost\nFROM Employees AS e\nJOIN Departments AS d\n  ON e.DepartmentID = d.DepartmentID\nGROUP BY\n  d.DepartmentID,\n  d.DepartmentName\nHAVING\n  SUM(e.Salary) = (\n    SELECT\n      MAX(DeptTotal)\n    FROM (\n      SELECT\n        SUM(e2.Salary) AS DeptTotal\n      FROM Employees AS e2\n      WHERE\n        NOT e2.DepartmentID IS NULL\n      GROUP BY\n        e2.DepartmentID\n    )\n  )",
+    "latency_s": 5.4,
+    "sql": "SELECT\n  d.DepartmentName,\n  ROUND(SUM(e.Salary), 2) AS TotalSalaryCost\nFROM Departments AS d\nJOIN Employees AS e\n  ON e.DepartmentID = d.DepartmentID\nGROUP BY\n  d.DepartmentID,\n  d.DepartmentName\nHAVING\n  SUM(e.Salary) = (\n    SELECT\n      MAX(DeptTotal)\n    FROM (\n      SELECT\n        SUM(e2.Salary) AS DeptTotal\n      FROM Employees AS e2\n      WHERE\n        NOT e2.DepartmentID IS NULL\n      GROUP BY\n        e2.DepartmentID\n    )\n  )",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Engineering has the highest total salary cost, at 2440500.0."
+    "message": "Engineering has the highest total salary cost, at 2,440,500.00."
   },
   {
     "id": "gen-10",
@@ -302,7 +302,7 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 4.7,
+    "latency_s": 4.8,
     "sql": "SELECT\n  COUNT(*) AS CustomerCount\nFROM Customers AS c\nWHERE\n  c.SignupDate >= '2026-01-01' AND c.SignupDate < '2027-01-01'",
     "response_type": "sql",
     "intent": "generate",
@@ -333,8 +333,8 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 7.3,
-    "sql": "WITH ProductQty AS (\n  SELECT\n    p.ProductID AS ProductID,\n    p.ProductName AS ProductName,\n    SUM(oi.Quantity) AS TotalQuantitySold\n  FROM OrderItems AS oi\n  JOIN Orders AS o\n    ON o.OrderID = oi.OrderID\n  JOIN Products AS p\n    ON p.ProductID = oi.ProductID\n  WHERE\n    NOT o.Status IN ('Cancelled', 'Returned')\n  GROUP BY\n    p.ProductID,\n    p.ProductName\n)\nSELECT\n  pq.ProductName,\n  pq.TotalQuantitySold\nFROM ProductQty AS pq\nWHERE\n  pq.TotalQuantitySold = (\n    SELECT\n      MAX(pq2.TotalQuantitySold)\n    FROM ProductQty AS pq2\n  )",
+    "latency_s": 7.8,
+    "sql": "WITH ProductQty AS (\n  SELECT\n    p.ProductID AS ProductID,\n    p.ProductName AS ProductName,\n    SUM(oi.Quantity) AS TotalQuantity\n  FROM OrderItems AS oi\n  JOIN Products AS p\n    ON oi.ProductID = p.ProductID\n  JOIN Orders AS o\n    ON oi.OrderID = o.OrderID\n  WHERE\n    NOT o.Status IN ('Cancelled', 'Returned')\n  GROUP BY\n    p.ProductID,\n    p.ProductName\n)\nSELECT\n  pq.ProductName,\n  pq.TotalQuantity\nFROM ProductQty AS pq\nWHERE\n  pq.TotalQuantity = (\n    SELECT\n      MAX(pq2.TotalQuantity)\n    FROM ProductQty AS pq2\n  )",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
@@ -364,12 +364,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 5.7,
-    "sql": "SELECT\n  d.DepartmentName,\n  COUNT(e.EmployeeID) AS EmployeeCount\nFROM Departments AS d\nLEFT JOIN Employees AS e\n  ON e.DepartmentID = d.DepartmentID\nGROUP BY\n  d.DepartmentID,\n  d.DepartmentName\nORDER BY\n  EmployeeCount DESC,\n  d.DepartmentName",
+    "latency_s": 5.0,
+    "sql": "SELECT\n  d.DepartmentName,\n  COUNT(e.EmployeeID) AS EmployeeCount\nFROM Departments AS d\nLEFT JOIN Employees AS e\n  ON e.DepartmentID = d.DepartmentID\nGROUP BY\n  d.DepartmentID,\n  d.DepartmentName\nORDER BY\n  EmployeeCount DESC",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Engineering has the most employees with 17, and the query returns 7 departments in total."
+    "message": "Engineering is the largest department with 17 employees."
   },
   {
     "id": "gen-13",
@@ -396,11 +396,11 @@
       }
     ],
     "latency_s": 6.2,
-    "sql": "WITH RepCounts AS (\n  SELECT\n    e.EmployeeID,\n    e.FirstName,\n    e.LastName,\n    COUNT(*) AS DeliveredOrders\n  FROM Orders AS o\n  JOIN Employees AS e\n    ON e.EmployeeID = o.EmployeeID\n  WHERE\n    o.Status = 'Delivered' AND NOT o.EmployeeID IS NULL\n  GROUP BY\n    e.EmployeeID,\n    e.FirstName,\n    e.LastName\n)\nSELECT\n  rc.EmployeeID,\n  rc.FirstName,\n  rc.LastName,\n  rc.DeliveredOrders\nFROM RepCounts AS rc\nWHERE\n  rc.DeliveredOrders = (\n    SELECT\n      MAX(rc2.DeliveredOrders)\n    FROM RepCounts AS rc2\n  )",
+    "sql": "WITH RepCounts AS (\n  SELECT\n    o.EmployeeID AS EmployeeID,\n    COUNT(*) AS DeliveredOrders\n  FROM Orders AS o\n  WHERE\n    o.Status = 'Delivered' AND NOT o.EmployeeID IS NULL\n  GROUP BY\n    o.EmployeeID\n)\nSELECT\n  e.EmployeeID,\n  e.FirstName,\n  e.LastName,\n  rc.DeliveredOrders\nFROM RepCounts AS rc\nJOIN Employees AS e\n  ON e.EmployeeID = rc.EmployeeID\nWHERE\n  rc.DeliveredOrders = (\n    SELECT\n      MAX(rc2.DeliveredOrders)\n    FROM RepCounts AS rc2\n  )\nORDER BY\n  e.EmployeeID",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "Two sales reps tie for the most delivered orders, each with 57: Lucas Adams and Daniel Walker."
+    "message": "Two sales reps tied for the most delivered orders, each with 57: Lucas Adams (ID 15) and Daniel Walker (ID 20)."
   },
   {
     "id": "gen-14",
@@ -426,8 +426,8 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 6.0,
-    "sql": "SELECT\n  c.State,\n  COUNT(*) AS CancelledOrders\nFROM Orders AS o\nJOIN Customers AS c\n  ON c.CustomerID = o.CustomerID\nWHERE\n  o.Status = 'Cancelled'\nGROUP BY\n  c.State\nHAVING\n  COUNT(*) = (\n    SELECT\n      MAX(cnt)\n    FROM (\n      SELECT\n        COUNT(*) AS cnt\n      FROM Orders AS o2\n      JOIN Customers AS c2\n        ON c2.CustomerID = o2.CustomerID\n      WHERE\n        o2.Status = 'Cancelled'\n      GROUP BY\n        c2.State\n    )\n  )",
+    "latency_s": 6.1,
+    "sql": "SELECT\n  c.State,\n  COUNT(*) AS CancelledOrders\nFROM Orders AS o\nJOIN Customers AS c\n  ON o.CustomerID = c.CustomerID\nWHERE\n  o.Status = 'Cancelled'\nGROUP BY\n  c.State\nHAVING\n  COUNT(*) = (\n    SELECT\n      MAX(cnt)\n    FROM (\n      SELECT\n        COUNT(*) AS cnt\n      FROM Orders AS o2\n      JOIN Customers AS c2\n        ON o2.CustomerID = c2.CustomerID\n      WHERE\n        o2.Status = 'Cancelled'\n      GROUP BY\n        c2.State\n    )\n  )",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
@@ -457,12 +457,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 5.1,
+    "latency_s": 4.6,
     "sql": "SELECT\n  p.ProductID,\n  p.ProductName,\n  p.Category,\n  p.UnitPrice,\n  p.StockQuantity,\n  p.IsActive\nFROM Products AS p\nWHERE\n  p.StockQuantity = 0\nORDER BY\n  p.ProductName",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "There are no products out of stock right now, as the query returned 0 rows."
+    "message": "There are no products out of stock."
   },
   {
     "id": "gen-16",
@@ -488,12 +488,12 @@
         "detail": ""
       }
     ],
-    "latency_s": 5.9,
+    "latency_s": 6.5,
     "sql": "SELECT\n  e.EmployeeID,\n  e.FirstName || ' ' || e.LastName AS EmployeeName,\n  m.FirstName || ' ' || m.LastName AS ManagerName\nFROM Employees AS e\nLEFT JOIN Employees AS m\n  ON e.ManagerID = m.EmployeeID\nORDER BY\n  e.EmployeeID",
     "response_type": "sql",
     "intent": "generate",
     "attempts": 1,
-    "message": "The query returns 68 employees, and the first 15 show Sophia Johnson as manager for most of the people shown."
+    "message": "There are 68 employees in total, and the first several shown have no manager while those from ID 8 onward report to Sophia Johnson."
   },
   {
     "id": "ctx-01",
@@ -525,7 +525,7 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 9.8,
+    "latency_s": 11.8,
     "sql": "SELECT\n  *\nFROM Customers AS c\nWHERE\n  c.State = 'California'",
     "response_type": "sql",
     "intent": "modify",
@@ -563,7 +563,7 @@
         "detail": "row counts match (large result, values not compared)"
       }
     ],
-    "latency_s": 16.3,
+    "latency_s": 16.5,
     "sql": "SELECT\n  *\nFROM Orders AS o\nWHERE\n  o.OrderDate >= '2025-01-01'\n  AND o.OrderDate < '2026-01-01'\n  AND o.Status = 'Delivered'\nORDER BY\n  o.TotalAmount DESC,\n  o.OrderID",
     "response_type": "sql",
     "intent": "modify",
@@ -600,7 +600,7 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 11.1,
+    "latency_s": 10.7,
     "sql": "SELECT\n  d.DepartmentName,\n  COUNT(e.EmployeeID) AS EmployeeCount\nFROM Departments AS d\nLEFT JOIN Employees AS e\n  ON e.DepartmentID = d.DepartmentID\nGROUP BY\n  d.DepartmentID,\n  d.DepartmentName\nHAVING\n  COUNT(e.EmployeeID) > 10\nORDER BY\n  EmployeeCount DESC",
     "response_type": "sql",
     "intent": "modify",
@@ -636,7 +636,7 @@
         "detail": ""
       }
     ],
-    "latency_s": 5.9,
+    "latency_s": 6.6,
     "sql": "SELECT\n  c.FirstName,\n  c.LastName\nFROM Customers AS c\nWHERE\n  c.State = 'California'",
     "response_type": "sql",
     "intent": "debug",
@@ -672,12 +672,12 @@
         "detail": ""
       }
     ],
-    "latency_s": 10.6,
-    "sql": "SELECT\n  c.CustomerID,\n  c.FirstName,\n  c.LastName,\n  ROUND(SUM(o.TotalAmount), 2) AS TotalRevenue\nFROM Customers AS c\nJOIN Orders AS o\n  ON c.CustomerID = o.CustomerID\nWHERE\n  NOT o.Status IN ('Cancelled', 'Returned')\nGROUP BY\n  c.CustomerID,\n  c.FirstName,\n  c.LastName\nORDER BY\n  TotalRevenue DESC",
+    "latency_s": 11.2,
+    "sql": "SELECT\n  c.CustomerID,\n  c.FirstName,\n  c.LastName,\n  ROUND(SUM(o.TotalAmount), 2) AS TotalRevenue\nFROM Customers AS c\nJOIN Orders AS o\n  ON c.CustomerID = o.CustomerID\nWHERE\n  NOT o.Status IN ('Cancelled', 'Returned')\nGROUP BY\n  c.CustomerID,\n  c.FirstName,\n  c.LastName",
     "response_type": "sql",
     "intent": "debug",
     "attempts": 1,
-    "message": "295 customers have revenue from valid orders, led by Mason Young with 11135.65."
+    "message": "Among the 15 customers shown, Liam Green has the highest total revenue at 7661.75."
   },
   {
     "id": "dbg-03",
@@ -708,12 +708,12 @@
         "detail": "row counts match (large result, values not compared)"
       }
     ],
-    "latency_s": 5.5,
+    "latency_s": 6.8,
     "sql": "SELECT\n  *\nFROM Orders AS o\nWHERE\n  o.Status = 'Shipped'",
     "response_type": "sql",
     "intent": "debug",
     "attempts": 1,
-    "message": "There are 226 shipped orders in total."
+    "message": "There are 226 shipped orders."
   },
   {
     "id": "opt-01",
@@ -749,7 +749,7 @@
         "detail": "row counts match (large result, values not compared)"
       }
     ],
-    "latency_s": 9.9,
+    "latency_s": 9.5,
     "sql": "SELECT\n  o.OrderID,\n  o.CustomerID,\n  o.EmployeeID,\n  o.OrderDate,\n  o.Status,\n  o.TotalAmount\nFROM Orders AS o\nWHERE\n  o.OrderDate >= '2025-01-01' AND o.OrderDate < '2026-01-01'",
     "response_type": "sql",
     "intent": "optimize",
@@ -790,12 +790,12 @@
         "detail": "results match"
       }
     ],
-    "latency_s": 9.6,
+    "latency_s": 9.5,
     "sql": "SELECT\n  o.OrderID,\n  o.TotalAmount\nFROM Orders AS o\nWHERE\n  o.Status = 'Pending'",
     "response_type": "sql",
     "intent": "optimize",
     "attempts": 1,
-    "message": "There are 152 pending orders, for example order 23 totalling 2495.0."
+    "message": "There are 152 pending orders."
   },
   {
     "id": "exp-01",
@@ -821,12 +821,12 @@
         "detail": ""
       }
     ],
-    "latency_s": 3.5,
+    "latency_s": 3.7,
     "sql": "SELECT\n  Category,\n  AVG(UnitPrice)\nFROM Products\nGROUP BY\n  Category",
     "response_type": "sql",
     "intent": "explain",
     "attempts": 1,
-    "message": "Furniture has the highest average unit price at about 235.67, while Accessories has the lowest at about 35.17."
+    "message": "Furniture has the highest average unit price at about 235.67, while Office Supplies has the lowest at about 28.57."
   },
   {
     "id": "sch-01",
@@ -842,12 +842,64 @@
         "detail": "got answer, want answer"
       }
     ],
-    "latency_s": 3.4,
+    "latency_s": 2.8,
     "sql": null,
     "response_type": "answer",
     "intent": "schema_info",
     "attempts": 0,
-    "message": "The database has 7 tables:\n- Departments (7 rows)\n- Employees (68 rows)\n- Customers (300 rows)\n- Products (32 rows)\n- Orders (1500 rows)\n- OrderItems (3734 rows)"
+    "message": "The database has 7 tables: Departments (7 rows), Employees (68 rows), Customers (300 rows), Products (32 rows), Orders (1500 rows), and OrderItems (3734 rows)."
+  },
+  {
+    "id": "sch-02",
+    "category": "explain",
+    "turns": [
+      "What is a LEFT JOIN?"
+    ],
+    "passed": true,
+    "checks": [
+      {
+        "name": "type",
+        "ok": true,
+        "detail": "got answer, want answer"
+      },
+      {
+        "name": "intent",
+        "ok": true,
+        "detail": "got sql_concept"
+      }
+    ],
+    "latency_s": 3.8,
+    "sql": null,
+    "response_type": "answer",
+    "intent": "sql_concept",
+    "attempts": 0,
+    "message": "A LEFT JOIN combines rows from two tables based on a matching condition, keeping every row from the left (first) table even when there is no match in the right (second) table. Where no match exists, the right-table columns come back as NULL.\n\n- Use it when you want all items from one table, plus related details if they exist.\n- Example: list every customer and their orders, including customers who have never ordered.\n\nExample query (read-only):\nSELECT c.CustomerID, c.FirstName, c.LastName, o.OrderID\nFROM Customers c\nLEFT JOIN Orders o ON o.CustomerID = c.CustomerID;\n\nWhat it returns: one row per customer-order pair for customers who have orders, plus one row per customer with no orders where OrderID is NULL. With 300 customers and 1500 orders, the result includes all 300 customers at minimum, so customers with no orders appear with a NULL OrderID."
+  },
+  {
+    "id": "sch-03",
+    "category": "explain",
+    "turns": [
+      "What's the difference between WHERE and HAVING?"
+    ],
+    "passed": true,
+    "checks": [
+      {
+        "name": "type",
+        "ok": true,
+        "detail": "got answer, want answer"
+      },
+      {
+        "name": "intent",
+        "ok": true,
+        "detail": "got sql_concept"
+      }
+    ],
+    "latency_s": 4.0,
+    "sql": null,
+    "response_type": "answer",
+    "intent": "sql_concept",
+    "attempts": 0,
+    "message": "WHERE and HAVING both filter rows, but at different stages of a query.\n\n- WHERE filters individual rows before any grouping or aggregation happens. It cannot use aggregate functions like SUM or COUNT.\n- HAVING filters groups after GROUP BY has been applied. It is the place to filter on aggregate results.\n\nExample using this schema (read-only): find customers whose non-cancelled, non-returned orders total more than 1000, counting only orders from 2024 onward.\n\nSELECT CustomerID, SUM(TotalAmount) AS Revenue FROM Orders WHERE Status NOT IN ('Cancelled', 'Returned') AND OrderDate >= '2024-01-01' GROUP BY CustomerID HAVING SUM(TotalAmount) > 1000;\n\nWHERE removes orders that are cancelled, returned, or dated before 2024 first. HAVING then keeps only the customers whose summed total exceeds 1000. The result is one row per qualifying CustomerID with its Revenue. The exact rows depend on the data, which is not shown here."
   },
   {
     "id": "grd-01",
@@ -863,7 +915,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.1,
+    "latency_s": 0.8,
     "sql": null,
     "response_type": "refusal",
     "intent": "destructive",
@@ -884,7 +936,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.3,
+    "latency_s": 1.4,
     "sql": null,
     "response_type": "refusal",
     "intent": "destructive",
@@ -926,7 +978,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.4,
+    "latency_s": 1.5,
     "sql": null,
     "response_type": "refusal",
     "intent": "destructive",
@@ -947,7 +999,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.4,
+    "latency_s": 1.5,
     "sql": null,
     "response_type": "refusal",
     "intent": "out_of_scope",
@@ -968,7 +1020,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.4,
+    "latency_s": 1.5,
     "sql": null,
     "response_type": "refusal",
     "intent": "out_of_scope",
@@ -989,7 +1041,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.0,
+    "latency_s": 1.5,
     "sql": null,
     "response_type": "refusal",
     "intent": "out_of_scope",
@@ -1010,7 +1062,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.4,
+    "latency_s": 1.5,
     "sql": null,
     "response_type": "refusal",
     "intent": "out_of_scope",
@@ -1031,7 +1083,7 @@
         "detail": "got refusal, want refusal"
       }
     ],
-    "latency_s": 1.4,
+    "latency_s": 1.1,
     "sql": null,
     "response_type": "refusal",
     "intent": "out_of_scope",
@@ -1078,7 +1130,7 @@
         "detail": "ok"
       }
     ],
-    "latency_s": 2.2,
+    "latency_s": 1.7,
     "sql": null,
     "response_type": "refusal",
     "intent": "destructive",
@@ -1104,12 +1156,12 @@
         "detail": "ok"
       }
     ],
-    "latency_s": 3.4,
+    "latency_s": 3.5,
     "sql": null,
     "response_type": "answer",
     "intent": "schema_info",
     "attempts": 0,
-    "message": "The schema has no phone number field. The Customers table contains CustomerID, FirstName, LastName, Email, City, State, Country, Segment and SignupDate, but no phone number column. Phone numbers are not available in this database."
+    "message": "There is no phone number information in this database. The Customers table has CustomerID, FirstName, LastName, Email, City, State, Country, Segment and SignupDate, but no phone column. Contact details available are the customer's Email, along with City, State and Country."
   },
   {
     "id": "hal-02",
@@ -1130,12 +1182,12 @@
         "detail": "ok"
       }
     ],
-    "latency_s": 3.7,
+    "latency_s": 3.3,
     "sql": null,
     "response_type": "clarification",
     "intent": "generate",
     "attempts": 0,
-    "message": "The schema has no bonus data (no bonus column or bonus-rate rule), so I can't calculate annual bonuses. I can show each employee's name, job title, department, and annual salary instead. If you give me a bonus rule, such as a percentage of salary, I can calculate it from that. Would either of those work?"
+    "message": "The schema has no bonus data (no Bonus column or bonus rules/percentages), so I can't calculate annual bonuses. I can instead list each employee's name, job title, department and annual Salary, or, if you give me a bonus rule (e.g. 10% of Salary), I can compute it from that."
   },
   {
     "id": "amb-01",
@@ -1151,7 +1203,7 @@
         "detail": "got clarification, want clarification"
       }
     ],
-    "latency_s": 1.1,
+    "latency_s": 1.2,
     "sql": null,
     "response_type": "clarification",
     "intent": "ambiguous",

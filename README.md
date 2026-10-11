@@ -21,7 +21,7 @@ Built with **LangGraph**, FastAPI, SQLite, `sqlglot` and React, on Anthropic Cla
 | SQL optimisation | Rewrites pasted SQL for readability and speed, using SQLite's query plan to recommend specific indexes |
 | SQL debugging | Runs the validator on pasted SQL first, so the model receives the concrete errors, then returns a corrected query and lists what was wrong |
 | Conversation context | Follow-ups ("only those from California") modify the previous query, using LangGraph's checkpointer memory |
-| Out-of-scope handling | Classified and refused with the exact wording from the brief |
+| Out-of-scope handling | Classified and refused with the exact wording from the brief. General SQL questions ("what is a LEFT JOIN?") are answered, with an example on the current schema |
 | Ambiguity | Asks one clarifying question when no reasonable interpretation exists; otherwise states its assumptions |
 | "A sample database schema will be provided" | **Upload any schema in the app** (`.sql` script or SQLite file) and the agent, validator and guardrails switch to it. See [Test with your own database](#test-with-your-own-database) |
 
@@ -33,8 +33,8 @@ Built with **LangGraph**, FastAPI, SQLite, `sqlglot` and React, on Anthropic Cla
 
 | Suite | Result | What it measures |
 | --- | --- | --- |
-| Evaluation set (real model) | **40 / 40** | Execution accuracy against hand-written gold SQL, plus guardrail behaviour, across 10 categories |
-| Unit and integration tests | **76 / 76** | Validator, guards, graph routing, repair loop, memory, API, database uploads — with a scripted fake LLM, no network |
+| Evaluation set (real model) | **42 / 42** | Execution accuracy against hand-written gold SQL, plus guardrail behaviour, across 10 categories |
+| Unit and integration tests | **77 / 77** | Validator, guards, graph routing, repair loop, memory, API, database uploads — with a scripted fake LLM, no network |
 
 The full eval report is in [`backend/evals/results/latest.md`](backend/evals/results/latest.md). **Caveat:** the eval set was written by me for a schema I designed, so it's a strong signal, not proof of general accuracy. See [Limitations](#limitations).
 
@@ -129,8 +129,8 @@ docker run -p 8000:8000 -e ANTHROPIC_API_KEY=your-key querypilot   # http://loca
 **Tests and evals** (from `backend/`):
 
 ```bash
-pytest                                  # 76 tests, no API key needed
-python -m evals.run_evals --workers 4   # 40 cases on the real model, writes evals/results/latest.md
+pytest                                  # 77 tests, no API key needed
+python -m evals.run_evals --workers 4   # 42 cases on the real model, writes evals/results/latest.md
 ```
 
 ### Configuration
@@ -190,7 +190,7 @@ Running locally, you can also point the app at any SQLite file: `QP_DB_PATH=/pat
 ## Limitations
 
 - **Agent memory is in-process.** A server restart clears conversation memory (the browser keeps the visible history). Production would use a database-backed LangGraph checkpointer (Postgres or Redis): a one-line change.
-- **Eval coverage.** 40 cases on one modest schema. Next steps: grow the set from real user questions, test on a large and messy schema, and add LLM-as-judge scoring for explanation quality.
+- **Eval coverage.** 42 cases on one modest schema. Next steps: grow the set from real user questions, test on a large and messy schema, and add LLM-as-judge scoring for explanation quality.
 - **Large schemas.** The whole schema goes into the prompt, which is fine for 6 tables. Hundreds of tables would need retrieval of only the relevant tables first.
 - **Free hosting** sleeps when idle (slow first load) and the in-memory rate limit resets on restart.
 
@@ -209,8 +209,8 @@ backend/
     databases.py   bring-your-own-database uploads (.sql scripts and SQLite files)
     main.py        FastAPI app (API + serves the built frontend)
     schema.sql, seed.py
-  tests/           76 unit and integration tests (fake LLM)
-  evals/           40-case evaluation set and runner
+  tests/           77 unit and integration tests (fake LLM)
+  evals/           42-case evaluation set and runner
 frontend/src/      React app (chat, live step trail, query panel)
 docs/              architecture, workflow, prompts, schema
 examples/          library.sql, a schema to try the upload feature with
