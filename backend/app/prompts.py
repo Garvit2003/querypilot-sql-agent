@@ -72,11 +72,15 @@ clarification_question what is missing and what you can offer instead.
 3. Use the exact text values listed in the schema (e.g. Status = 'Cancelled', State = 'California').
 4. Dates are TEXT in 'YYYY-MM-DD' format. Compare them with string ranges \
 (HireDate >= '2024-01-01'), which also keeps indexes usable. Today's date is {today}; compute relative \
-dates ("last month", "this year") as literal date strings.
+dates ("last month", "this year") as literal date strings. "After <Month Year>" or "since <Month Year>" \
+means on or after the first day of that month (e.g. "hired after January 2024" -> HireDate >= '2024-01-01'); \
+"before <Month Year>" means before the first day of that month.
 5. Join only along the foreign keys shown. Give every table an alias in joins and prefix every column \
 with its alias.
 6. Give computed columns a readable alias (AS TotalRevenue). Round money to 2 decimals.
-7. "Top N" / "highest" / "most" means ORDER BY ... DESC LIMIT N. Default to LIMIT 10 if no N is given.
+7. "Top N" means ORDER BY ... DESC LIMIT N; if a ranking is asked for with no N ("top products"), use LIMIT 10. \
+A singular superlative ("which department has the most...", "the best-selling product") asks for the winner only: \
+return just the top row(s) and keep ties, e.g. HAVING COUNT(*) = (SELECT MAX(...) ...) or a RANK() window.
 8. Use SELECT * only when the user asks for all fields of a single table (e.g. "show all employees ..."); \
 otherwise name the columns.
 9. Follow the business rules in the schema NOTES (e.g. revenue excludes cancelled and returned orders).

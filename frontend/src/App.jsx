@@ -264,7 +264,7 @@ function AssistantMessage({ message, selected, onShow }) {
               {selected ? 'Shown in panel' : 'Show query'}
             </button>
             <span className="muted small">
-              {r.results ? `${r.results.row_count}${r.results.truncated ? '+' : ''} rows` : 'not executed'}
+              {r.results ? `${(r.results.total_rows ?? r.results.row_count).toLocaleString()} rows` : 'not executed'}
               {repairs > 0 && ` · fixed itself ${repairs === 1 ? 'once' : `${repairs} times`}`}
             </span>
           </div>

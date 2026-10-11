@@ -185,10 +185,14 @@ def run_readonly_query(sql: str, limit: int | None = None, timeout: float | None
         rows = cur.fetchmany(limit + 1)
         truncated = len(rows) > limit
         rows = rows[:limit]
+        total = len(rows)
+        if truncated:  # count the full result so summaries never report the display cap as the total
+            total = conn.execute(f"SELECT COUNT(*) FROM ({sql})").fetchone()[0]
         return {
             "columns": columns,
             "rows": [list(r) for r in rows],
             "row_count": len(rows),
+            "total_rows": total,
             "truncated": truncated,
             "elapsed_ms": round((time.monotonic() - started) * 1000, 1),
         }

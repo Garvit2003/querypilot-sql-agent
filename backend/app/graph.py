@@ -107,9 +107,9 @@ def _results_preview(results: Optional[dict], max_rows: int = 15) -> str:
         return "(no results)"
     header = " | ".join(results["columns"])
     rows = [" | ".join(str(v) for v in r) for r in results["rows"][:max_rows]]
-    more = f"\n... ({results['row_count']} rows shown in total" + \
-           (", more exist" if results.get("truncated") else "") + ")"
-    return header + "\n" + "\n".join(rows) + more
+    total = results.get("total_rows", results["row_count"])
+    note = f"\n(The query returns {total} rows in total; {min(max_rows, len(results['rows']))} are shown here.)"
+    return header + "\n" + "\n".join(rows) + note
 
 
 def _transpile(sql: str) -> dict:

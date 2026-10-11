@@ -63,15 +63,18 @@ class LangChainClient:
             name = config.LLM_FAST_MODEL if fast else config.LLM_MODEL
             if config.LLM_PROVIDER == "anthropic":
                 from langchain_anthropic import ChatAnthropic
-                self._models[key] = ChatAnthropic(model=name, temperature=0, max_tokens=1500,
+                # No temperature: current Claude models reject it. Consistency comes from structured
+                # output schemas, strict prompts and the deterministic validator instead.
+                self._models[key] = ChatAnthropic(model=name, max_tokens=1500,
                                                   timeout=config.LLM_TIMEOUT_SECONDS, max_retries=2)
             else:
                 from langchain.chat_models import init_chat_model  # optional dependency for other providers
-                self._models[key] = init_chat_model(name, model_provider=config.LLM_PROVIDER, temperature=0)
+                self._models[key] = init_chat_model(name, model_provider=config.LLM_PROVIDER)
         return self._models[key]
 
     def structured(self, model_cls, system, user, fast=False):
-        runnable = self._model(fast).with_structured_output(model_cls)
+        kwargs = {"method": "json_schema"} if config.LLM_PROVIDER == "anthropic" else {}
+        runnable = self._model(fast).with_structured_output(model_cls, **kwargs)
         return runnable.invoke([("system", system), ("human", user)])
 
 
