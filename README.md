@@ -2,7 +2,7 @@
 
 Ask a database question in plain English and get back **validated, read-only SQL**, a plain-English explanation, and the actual results. Paste SQL to have it **explained, debugged or optimised**. **Bring your own database** by uploading a `.sql` schema or a SQLite file. Anything that isn't about SQL or the database is politely refused.
 
-**Live app:** https://querypilot-sql-agent.onrender.com · **Demo video:** _VIDEO_URL_
+**Live app:** https://querypilot-sql-agent.onrender.com · **Demo video:** https://www.loom.com/share/1b5e8b067fa24e2c9acc3c1f65373822
 
 Built with **LangGraph**, FastAPI, SQLite, `sqlglot` and React, on Anthropic Claude models.
 
